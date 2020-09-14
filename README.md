@@ -6,7 +6,7 @@ XXL-JOB-Onion 是基于 [XXL-JOB 2.2.0](https://github.com/xuxueli/xxl-job) 的�
 
 ## 主要贡献者
 
-* wujiuye 洋葱集团 jiuye-wu@msyc.cc
+* wujiuye 洋葱集团（`297、广州市洋葱omall电子商务`）
 
 ## 当前的主要功能
 
