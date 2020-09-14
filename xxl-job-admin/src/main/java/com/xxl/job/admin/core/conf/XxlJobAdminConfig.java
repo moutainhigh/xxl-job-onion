@@ -1,5 +1,6 @@
 package com.xxl.job.admin.core.conf;
 
+import com.xxl.job.admin.core.alarm.AlarmLevelAdjudicatorManager;
 import com.xxl.job.admin.core.alarm.JobAlarmer;
 import com.xxl.job.admin.core.scheduler.XxlJobScheduler;
 import com.xxl.job.admin.dao.*;
@@ -23,6 +24,7 @@ import java.util.Arrays;
 public class XxlJobAdminConfig implements InitializingBean, DisposableBean {
 
     private static XxlJobAdminConfig adminConfig = null;
+
     public static XxlJobAdminConfig getAdminConfig() {
         return adminConfig;
     }
@@ -85,6 +87,8 @@ public class XxlJobAdminConfig implements InitializingBean, DisposableBean {
     private DataSource dataSource;
     @Resource
     private JobAlarmer jobAlarmer;
+    @Resource
+    private AlarmLevelAdjudicatorManager alarmLevelAdjudicatorManager;
 
 
     public String getI18n() {
@@ -117,8 +121,9 @@ public class XxlJobAdminConfig implements InitializingBean, DisposableBean {
     }
 
     public int getLogretentiondays() {
+        // Limit greater than or equal to 7, otherwise close
         if (logretentiondays < 7) {
-            return -1;  // Limit greater than or equal to 7, otherwise close
+            return -1;
         }
         return logretentiondays;
     }
@@ -153,6 +158,10 @@ public class XxlJobAdminConfig implements InitializingBean, DisposableBean {
 
     public JobAlarmer getJobAlarmer() {
         return jobAlarmer;
+    }
+
+    public AlarmLevelAdjudicatorManager getAlarmLevelAdjudicatorManager() {
+        return alarmLevelAdjudicatorManager;
     }
 
 }

@@ -25,6 +25,7 @@ import java.util.concurrent.*;
  * @author xuxueli 2016-1-16 19:52:47
  */
 public class JobThread extends Thread{
+
 	private static Logger logger = LoggerFactory.getLogger(JobThread.class);
 
 	private int jobId;
@@ -38,13 +39,13 @@ public class JobThread extends Thread{
     private boolean running = false;    // if running job
 	private int idleTimes = 0;			// idel times
 
-
 	public JobThread(int jobId, IJobHandler handler) {
 		this.jobId = jobId;
 		this.handler = handler;
 		this.triggerQueue = new LinkedBlockingQueue<TriggerParam>();
 		this.triggerLogIdSet = Collections.synchronizedSet(new HashSet<Long>());
 	}
+
 	public IJobHandler getHandler() {
 		return handler;
 	}
@@ -61,7 +62,6 @@ public class JobThread extends Thread{
 			logger.info(">>>>>>>>>>> repeate trigger job, logId:{}", triggerParam.getLogId());
 			return new ReturnT<String>(ReturnT.FAIL_CODE, "repeate trigger job, logId:" + triggerParam.getLogId());
 		}
-
 		triggerLogIdSet.add(triggerParam.getLogId());
 		triggerQueue.add(triggerParam);
         return ReturnT.SUCCESS;
@@ -92,14 +92,12 @@ public class JobThread extends Thread{
 
     @Override
 	public void run() {
-
     	// init
     	try {
 			handler.init();
 		} catch (Throwable e) {
     		logger.error(e.getMessage(), e);
 		}
-
 		// execute
 		while(!toStop){
 			running = false;
@@ -215,4 +213,5 @@ public class JobThread extends Thread{
 
 		logger.info(">>>>>>>>>>> xxl-job JobThread stoped, hashCode:{}", Thread.currentThread());
 	}
+
 }

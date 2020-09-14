@@ -3,15 +3,18 @@ package com.xxl.job.core.executor.impl;
 import com.xxl.job.core.biz.model.ReturnT;
 import com.xxl.job.core.executor.XxlJobExecutor;
 import com.xxl.job.core.glue.GlueFactory;
+import com.xxl.job.core.handler.OnionJobHandler;
+import com.xxl.job.core.handler.OnionShardingJobHandler;
 import com.xxl.job.core.handler.annotation.XxlJob;
 import com.xxl.job.core.handler.impl.MethodJobHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
-import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.core.MethodIntrospector;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 
@@ -24,23 +27,31 @@ import java.util.Map;
  *
  * @author xuxueli 2018-11-01 09:24:52
  */
-public class XxlJobSpringExecutor extends XxlJobExecutor implements ApplicationContextAware, SmartInitializingSingleton, DisposableBean {
+public class XxlJobSpringExecutor extends XxlJobExecutor implements ApplicationContextAware, DisposableBean,
+        ApplicationListener<ContextRefreshedEvent> {
+
     private static final Logger logger = LoggerFactory.getLogger(XxlJobSpringExecutor.class);
 
+    // ---------------------- applicationContext ----------------------
+    private static ApplicationContext applicationContext;
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        XxlJobSpringExecutor.applicationContext = applicationContext;
+    }
+
+    public static ApplicationContext getApplicationContext() {
+        return applicationContext;
+    }
 
     // start
     @Override
-    public void afterSingletonsInstantiated() {
-
-        // init JobHandler Repository
-        /*initJobHandlerRepository(applicationContext);*/
-
+    public void onApplicationEvent(ContextRefreshedEvent applicationContextEvent) {
+        super.checkConfig();
         // init JobHandler Repository (for method)
         initJobHandlerMethodRepository(applicationContext);
-
         // refresh GlueFactory
         GlueFactory.refreshInstance(1);
-
         // super start
         try {
             super.start();
@@ -55,37 +66,26 @@ public class XxlJobSpringExecutor extends XxlJobExecutor implements ApplicationC
         super.destroy();
     }
 
-
-    /*private void initJobHandlerRepository(ApplicationContext applicationContext) {
-        if (applicationContext == null) {
-            return;
-        }
-
-        // init job handler action
-        Map<String, Object> serviceBeanMap = applicationContext.getBeansWithAnnotation(JobHandler.class);
-
-        if (serviceBeanMap != null && serviceBeanMap.size() > 0) {
-            for (Object serviceBean : serviceBeanMap.values()) {
-                if (serviceBean instanceof IJobHandler) {
-                    String name = serviceBean.getClass().getAnnotation(JobHandler.class).value();
-                    IJobHandler handler = (IJobHandler) serviceBean;
-                    if (loadJobHandler(name) != null) {
-                        throw new RuntimeException("xxl-job jobhandler[" + name + "] naming conflicts.");
-                    }
-                    registJobHandler(name, handler);
-                }
-            }
-        }
-    }*/
-
     private void initJobHandlerMethodRepository(ApplicationContext applicationContext) {
         if (applicationContext == null) {
             return;
         }
+
         // init job handler from method
         String[] beanDefinitionNames = applicationContext.getBeanNamesForType(Object.class, false, true);
         for (String beanDefinitionName : beanDefinitionNames) {
             Object bean = applicationContext.getBean(beanDefinitionName);
+
+            // 支持 OnionShardingJobHandler、OnionJobHandler
+            // wujiuye 2020/04/16 jiuye-wu@msyc.cc
+            boolean onionBean = false;
+            if (OnionShardingJobHandler.class.isAssignableFrom(bean.getClass())) {
+                onionBean = true;
+                registJobHandler(beanDefinitionName, (OnionShardingJobHandler<?>) bean);
+            } else if (OnionJobHandler.class.isAssignableFrom(bean.getClass())) {
+                onionBean = true;
+                registJobHandler(beanDefinitionName, (OnionJobHandler<?>) bean);
+            }
 
             Map<Method, XxlJob> annotatedMethods = null;   // referred to ：org.springframework.context.event.EventListenerMethodProcessor.processBean
             try {
@@ -99,7 +99,11 @@ public class XxlJobSpringExecutor extends XxlJobExecutor implements ApplicationC
             } catch (Throwable ex) {
                 logger.error("xxl-job method-jobhandler resolve error for bean[" + beanDefinitionName + "].", ex);
             }
-            if (annotatedMethods==null || annotatedMethods.isEmpty()) {
+            if (annotatedMethods == null || annotatedMethods.isEmpty()) {
+                continue;
+            }
+            if (onionBean) {
+                // 使用接口方法实现job的类不允许再有@XxlJob注解的方法
                 continue;
             }
 
@@ -155,18 +159,6 @@ public class XxlJobSpringExecutor extends XxlJobExecutor implements ApplicationC
             }
         }
 
-    }
-
-    // ---------------------- applicationContext ----------------------
-    private static ApplicationContext applicationContext;
-
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.applicationContext = applicationContext;
-    }
-
-    public static ApplicationContext getApplicationContext() {
-        return applicationContext;
     }
 
 }

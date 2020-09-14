@@ -5,7 +5,7 @@ import java.io.Serializable;
 /**
  * Created by xuxueli on 16/7/22.
  */
-public class TriggerParam implements Serializable{
+public class TriggerParam implements Serializable {
     private static final long serialVersionUID = 42L;
 
     private int jobId;
@@ -22,6 +22,8 @@ public class TriggerParam implements Serializable{
     private String glueSource;
     private long glueUpdatetime;
 
+    // 分片相关
+    private boolean sharding;
     private int broadcastIndex;
     private int broadcastTotal;
 
@@ -122,6 +124,13 @@ public class TriggerParam implements Serializable{
         this.broadcastTotal = broadcastTotal;
     }
 
+    public void setSharding(boolean sharding) {
+        this.sharding = sharding;
+    }
+
+    public boolean isSharding() {
+        return sharding;
+    }
 
     @Override
     public String toString() {
@@ -136,6 +145,7 @@ public class TriggerParam implements Serializable{
                 ", glueType='" + glueType + '\'' +
                 ", glueSource='" + glueSource + '\'' +
                 ", glueUpdatetime=" + glueUpdatetime +
+                ", sharding=" + sharding +
                 ", broadcastIndex=" + broadcastIndex +
                 ", broadcastTotal=" + broadcastTotal +
                 '}';

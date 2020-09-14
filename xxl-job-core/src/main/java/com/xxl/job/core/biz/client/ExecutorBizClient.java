@@ -11,8 +11,6 @@ import com.xxl.job.core.util.XxlJobRemotingUtil;
  */
 public class ExecutorBizClient implements ExecutorBiz {
 
-    public ExecutorBizClient() {
-    }
     public ExecutorBizClient(String addressUrl, String accessToken) {
         this.addressUrl = addressUrl;
         this.accessToken = accessToken;
@@ -21,21 +19,25 @@ public class ExecutorBizClient implements ExecutorBiz {
         if (!this.addressUrl.endsWith("/")) {
             this.addressUrl = this.addressUrl + "/";
         }
+        // fix bug by wujiuye 2020/04/16
+        if (!this.addressUrl.startsWith("http")) {
+            this.addressUrl = "http://" + this.addressUrl;
+        }
     }
 
-    private String addressUrl ;
+    private String addressUrl;
     private String accessToken;
-    private int timeout = 3;
+    private int timeout = 6;
 
 
     @Override
     public ReturnT<String> beat() {
-        return XxlJobRemotingUtil.postBody(addressUrl+"beat", accessToken, timeout, null, String.class);
+        return XxlJobRemotingUtil.postBody(addressUrl + "beat", accessToken, timeout, null, String.class);
     }
 
     @Override
-    public ReturnT<String> idleBeat(IdleBeatParam idleBeatParam){
-        return XxlJobRemotingUtil.postBody(addressUrl+"idleBeat", accessToken, timeout, idleBeatParam, String.class);
+    public ReturnT<String> idleBeat(IdleBeatParam idleBeatParam) {
+        return XxlJobRemotingUtil.postBody(addressUrl + "idleBeat", accessToken, timeout, idleBeatParam, String.class);
     }
 
     @Override
